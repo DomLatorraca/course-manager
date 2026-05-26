@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Iscritti</h1>
+    <p>Anagrafiche e storico dei corsi associati.</p>
+  </div>
+  {% if current_user.role.value == 'admin' %}<a class="button primary" href="/students/new">Nuovo iscritto</a>{% endif %}
+</div>
+<form class="filters" method="get" action="/students">
+  <input name="q" placeholder="Nome, cognome, email o azienda" value="{{ q }}">
+  <button class="button" type="submit">Cerca</button>
+</form>
+<table>
+  <thead><tr><th>Cognome</th><th>Nome</th><th>Email</th><th>Azienda/ente</th><th>Aggiornato</th></tr></thead>
+  <tbody>
+    {% for student in students %}
+      <tr>
+        <td><a href="/students/{{ student.id }}">{{ student.last_name }}</a></td>
+        <td>{{ student.first_name }}</td>
+        <td>{{ student.email }}</td>
+        <td>{{ student.organization }}</td>
+        <td>{{ student.updated_at.strftime('%d/%m/%Y') }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">Nessun iscritto trovato.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+

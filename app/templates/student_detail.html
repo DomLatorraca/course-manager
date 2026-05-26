@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ student.last_name }} {{ student.first_name }}</h1>
+    <p>{{ student.email }}{% if student.phone %} · {{ student.phone }}{% endif %}</p>
+    <div class="meta">{{ student.organization }}</div>
+  </div>
+  {% if current_user.role.value == 'admin' %}
+    <div class="actions">
+      <a class="button" href="/students/{{ student.id }}/edit">Modifica</a>
+      <form method="post" action="/students/{{ student.id }}/delete" data-confirm="Eliminare l'iscritto?"><button class="button danger" type="submit">Elimina</button></form>
+    </div>
+  {% endif %}
+</div>
+{% if student.notes %}<p class="note">{{ student.notes }}</p>{% endif %}
+<h2>Corsi associati</h2>
+<table>
+  <thead><tr><th>Corso</th><th>Categoria</th><th>Stato iscrizione</th><th>Data iscrizione</th><th>Completamento</th></tr></thead>
+  <tbody>
+    {% for enrollment in enrollments %}
+      <tr>
+        <td><a href="/courses/{{ enrollment.course_id }}">{{ enrollment.course.title }}</a></td>
+        <td>{{ enrollment.course.category }}</td>
+        <td><span class="badge {{ enrollment.status.value }}">{{ enrollment.status.value }}</span></td>
+        <td>{{ enrollment.enrolled_at.strftime('%d/%m/%Y') }}</td>
+        <td>{{ enrollment.completed_at.strftime('%d/%m/%Y') if enrollment.completed_at else '-' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">Nessuna iscrizione associata.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+

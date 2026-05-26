@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="login-wrap">
+  <form class="login-panel" method="post" action="/login">
+    <h1>Accesso interno</h1>
+    <label>Username
+      <input name="username" autocomplete="username" required autofocus>
+    </label>
+    <label>Password
+      <input name="password" type="password" autocomplete="current-password" required>
+    </label>
+    <button class="button primary" type="submit">Accedi</button>
+  </form>
+</section>
+{% endblock %}
+

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Import/export</h1>
+    <p>Esporta archivi CSV e importa iscritti o iscrizioni da tracciati standard.</p>
+  </div>
+</div>
+<section class="grid-two">
+  <div>
+    <h2>Export CSV</h2>
+    <div class="stack">
+      <a class="button" href="/export/courses.csv">Corsi</a>
+      <a class="button" href="/export/students.csv">Iscritti</a>
+      <a class="button" href="/export/enrollments.csv">Iscrizioni</a>
+    </div>
+  </div>
+  <div>
+    <h2>Import CSV</h2>
+    {% if current_user.role.value == 'admin' %}
+      <form class="inline-form" method="post" action="/import/students" enctype="multipart/form-data">
+        <label>Iscritti: colonne nome,cognome,email,telefono,azienda_ente,note
+          <input type="file" name="file" accept=".csv" required>
+        </label>
+        <button class="button primary" type="submit">Importa iscritti</button>
+      </form>
+      <form class="inline-form" method="post" action="/import/enrollments" enctype="multipart/form-data">
+        <label>Iscrizioni: corso_titolo oppure corso_id, email_iscritto, stato, note
+          <input type="file" name="file" accept=".csv" required>
+        </label>
+        <button class="button primary" type="submit">Importa iscrizioni</button>
+      </form>
+    {% else %}
+      <p class="muted">Import disponibile solo per admin.</p>
+    {% endif %}
+  </div>
+</section>
+{% if result %}
+  <section class="result">
+    <h2>Risultato import {{ import_type }}</h2>
+    <p>Creati: {{ result.created }} · Saltati: {{ result.skipped }}</p>
+    {% if result.errors %}
+      <ul>{% for item in result.errors %}<li>{{ item }}</li>{% endfor %}</ul>
+    {% endif %}
+  </section>
+{% endif %}
+{% endblock %}
+

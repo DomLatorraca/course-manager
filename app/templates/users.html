@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Utenti</h1>
+    <p>Creazione utenti e cambio password. Ruoli disponibili: admin, viewer.</p>
+  </div>
+</div>
+<section class="grid-two">
+  <form class="form" method="post" action="/users">
+    <h2>Nuovo utente</h2>
+    <label>Username <input name="username" required minlength="3"></label>
+    <label>Password <input name="password" type="password" required minlength="8"></label>
+    <label>Ruolo
+      <select name="role">
+        <option value="viewer">viewer</option>
+        <option value="admin">admin</option>
+      </select>
+    </label>
+    <button class="button primary" type="submit">Crea utente</button>
+  </form>
+  <div>
+    <h2>Utenti esistenti</h2>
+    <table>
+      <thead><tr><th>Username</th><th>Ruolo</th><th>Cambio password</th></tr></thead>
+      <tbody>
+        {% for user in users %}
+          <tr>
+            <td>{{ user.username }}</td>
+            <td><span class="badge">{{ user.role.value }}</span></td>
+            <td>
+              <form class="password-form" method="post" action="/users/{{ user.id }}/password">
+                <input name="password" type="password" minlength="8" placeholder="Nuova password" required>
+                <button class="button small" type="submit">Aggiorna</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
+

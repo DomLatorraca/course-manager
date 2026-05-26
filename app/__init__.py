@@ -1,0 +1,2 @@
+"""Course Manager application package."""
+

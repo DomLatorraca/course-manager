@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Dashboard</h1>
+    <p>Stato sintetico di corsi, iscritti e completamenti.</p>
+  </div>
+</div>
+<section class="metrics">
+  <div><span>Corsi</span><strong>{{ stats.courses }}</strong></div>
+  <div><span>Iscritti</span><strong>{{ stats.students }}</strong></div>
+  <div><span>Completate</span><strong>{{ stats.completed }}</strong></div>
+  <div><span>Non completate</span><strong>{{ stats.not_completed }}</strong></div>
+</section>
+<section class="grid-two">
+  <div>
+    <h2>Ultimi corsi</h2>
+    <table>
+      <thead><tr><th>Titolo</th><th>Categoria</th><th>Stato</th></tr></thead>
+      <tbody>
+        {% for course in latest_courses %}
+          <tr><td><a href="/courses/{{ course.id }}">{{ course.title }}</a></td><td>{{ course.category }}</td><td><span class="badge">{{ course.status.value }}</span></td></tr>
+        {% else %}
+          <tr><td colspan="3" class="muted">Nessun corso presente.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div>
+    <h2>Ultime iscrizioni aggiornate</h2>
+    <table>
+      <thead><tr><th>Corso</th><th>Iscritto</th><th>Stato</th></tr></thead>
+      <tbody>
+        {% for enrollment in latest_enrollments %}
+          <tr>
+            <td><a href="/courses/{{ enrollment.course_id }}">{{ enrollment.course.title }}</a></td>
+            <td>{{ enrollment.student.last_name }} {{ enrollment.student.first_name }}</td>
+            <td><span class="badge {{ enrollment.status.value }}">{{ enrollment.status.value }}</span></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="3" class="muted">Nessuna iscrizione presente.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
+
