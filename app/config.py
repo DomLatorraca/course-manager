@@ -16,6 +16,14 @@ class Settings:
     secret_key: str = os.getenv("SECRET_KEY", "change-me")
     database_url: str = os.getenv("DATABASE_URL", "sqlite:///./data/app.db")
     course_files_dir: Path = Path(os.getenv("COURSE_FILES_DIR", "./storage")).resolve()
+    _default_excel_courses_path = Path.home() / "Downloads" / "Formazione dta 2024).xlsx"
+    excel_courses_path: Path = Path(
+        os.getenv(
+            "EXCEL_COURSES_PATH",
+            str(_default_excel_courses_path) if _default_excel_courses_path.exists() else "./data/corsi.xlsx",
+        )
+    ).resolve()
+    excel_courses_sheet_name: str = os.getenv("EXCEL_COURSES_SHEET", "Corsi")
     max_upload_mb: int = int(os.getenv("MAX_UPLOAD_MB", "50"))
     allowed_extensions: set[str] = {
         item.strip().lower()
@@ -43,6 +51,7 @@ class Settings:
 def get_settings() -> Settings:
     settings = Settings()
     settings.course_files_dir.mkdir(parents=True, exist_ok=True)
+    settings.excel_courses_path.parent.mkdir(parents=True, exist_ok=True)
     if settings.database_url.startswith("sqlite:///"):
         db_path = settings.database_url.replace("sqlite:///", "", 1)
         if db_path and db_path != ":memory:":

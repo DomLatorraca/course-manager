@@ -7,6 +7,7 @@ Applicazione web interna per gestione semplificata di corsi, materiali didattici
 - Login interna con utenti `admin` e `viewer`.
 - Dashboard con conteggi principali e ultime attività.
 - CRUD corsi, archiviazione e cancellazione bloccata se esistono iscrizioni.
+- Gestione corsi su Excel con inserimento, modifica, archiviazione e cancellazione su un foglio dedicato `Corsi`.
 - Upload, download ed eliminazione materiali per corso.
 - CRUD iscritti con email univoca e cancellazione bloccata se esistono iscrizioni.
 - Iscrizioni corso/iscritto con vincolo di unicità.
@@ -40,6 +41,8 @@ APP_ENV=development
 SECRET_KEY=dev-secret-change-me
 DATABASE_URL=sqlite:///./data/app.db
 COURSE_FILES_DIR=./storage
+EXCEL_COURSES_PATH=./data/corsi.xlsx
+EXCEL_COURSES_SHEET=Corsi
 ```
 
 ## Configurazione produzione
@@ -54,6 +57,8 @@ DATABASE_URL=sqlite:////opt/course-manager/data/app.db
 COURSE_FILES_DIR=/opt/course-manager/storage
 MAX_UPLOAD_MB=50
 ALLOWED_EXTENSIONS=pdf,doc,docx,ppt,pptx,xls,xlsx,png,jpg,jpeg,zip
+EXCEL_COURSES_PATH=/opt/course-manager/data/corsi.xlsx
+EXCEL_COURSES_SHEET=Corsi
 ADMIN_DEFAULT_USERNAME=admin
 ADMIN_DEFAULT_PASSWORD=change-me-on-first-login
 ```
@@ -127,6 +132,52 @@ Le protezioni implementate:
 - rimozione componenti di percorso dal nome originale;
 - verifica che il file finale resti dentro `COURSE_FILES_DIR`;
 - validazione estensione e dimensione massima.
+
+## Gestione corsi Excel
+
+La voce di menu `Corsi Excel` legge e scrive un foglio normalizzato nel workbook configurato con `EXCEL_COURSES_PATH`.
+
+Il foglio usato dall'applicativo è `Corsi` per default e contiene queste colonne:
+
+```csv
+id,titolo,descrizione_breve,categoria,durata,stato,data_creazione,data_aggiornamento
+```
+
+Se il workbook esiste già ma il foglio `Corsi` non esiste, l'app lo crea senza cancellare gli altri fogli. Nel caso del file calendario fornito, i titoli presenti in `Foglio3` vengono usati per popolare la prima anagrafica corsi.
+
+Per usare il file indicato localmente:
+
+```env
+EXCEL_COURSES_PATH=C:\Users\Utente\Downloads\Formazione dta 2024).xlsx
+EXCEL_COURSES_SHEET=Corsi
+```
+
+Per popolare o aggiornare il database con i corsi presenti nell'Excel:
+
+```bash
+python -m app.cli import-excel-courses
+```
+
+Il comando usa `EXCEL_COURSES_PATH` e `EXCEL_COURSES_SHEET`. Puoi anche passare il file esplicitamente:
+
+```bash
+python -m app.cli import-excel-courses --path "/percorso/Formazione dta 2024).xlsx"
+```
+
+Il comando è idempotente: abbina i corsi per titolo, crea quelli mancanti e aggiorna quelli già presenti. Per vedere cosa farebbe senza scrivere nel database:
+
+```bash
+python -m app.cli import-excel-courses --dry-run
+```
+
+Esempio dopo un `git pull` sul server:
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+python -m app.cli init-db
+python -m app.cli import-excel-courses
+```
 
 ## Import CSV
 

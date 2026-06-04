@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import quote_plus
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
@@ -16,8 +18,9 @@ from app.routers.dependencies import current_user_or_none
 from app.schemas.course import CourseCreate, CourseUpdate
 from app.schemas.enrollment import EnrollmentCreate, EnrollmentUpdate
 from app.schemas.student import StudentCreate, StudentUpdate
-from app.services import course_service, enrollment_service, student_service
+from app.services import course_service, enrollment_service, excel_course_service, student_service
 from app.services.auth_service import change_password, create_user
+from app.services.excel_course_service import ExcelCourseError, ExcelCoursePayload
 from app.services.export_service import export_courses_csv, export_enrollments_csv, export_students_csv
 from app.services.file_service import delete_material, get_material_path, save_material
 from app.services.import_service import import_enrollments_csv, import_students_csv
@@ -41,6 +44,10 @@ def render(request: Request, template: str, context: dict[str, object] | None = 
 
 def redirect(path: str) -> RedirectResponse:
     return RedirectResponse(path, status_code=status.HTTP_303_SEE_OTHER)
+
+
+def quote_message(message: str) -> str:
+    return quote_plus(message)
 
 
 def require_page_user(request: Request, user: User | None) -> User | RedirectResponse:
@@ -199,6 +206,162 @@ def course_delete(request: Request, course_id: int, db: Session = Depends(get_db
         return redirect("/courses?success=Corso+eliminato")
     except ValueError as exc:
         return redirect(f"/courses/{course_id}?error={str(exc).replace(' ', '+')}")
+
+
+@router.get("/excel-courses")
+def excel_courses_list(request: Request, q: str = "", category: str = "", status_filter: str = "", user: User | None = Depends(current_user_or_none)):
+    current = require_page_user(request, user)
+    if isinstance(current, RedirectResponse):
+        return current
+    try:
+        courses = excel_course_service.list_excel_courses(q=q, category=category, status=status_filter)
+        return render(
+            request,
+            "excel_courses_list.html",
+            {
+                "courses": courses,
+                "q": q,
+                "category": category,
+                "status_filter": status_filter,
+                "workbook_path": excel_course_service.get_excel_path(),
+                "sheet_name": excel_course_service.get_sheet_name(),
+            },
+        )
+    except ExcelCourseError as exc:
+        return render(
+            request,
+            "excel_courses_list.html",
+            {
+                "courses": [],
+                "q": q,
+                "category": category,
+                "status_filter": status_filter,
+                "workbook_path": excel_course_service.get_excel_path(),
+                "sheet_name": excel_course_service.get_sheet_name(),
+                "error": str(exc),
+            },
+        )
+
+
+@router.get("/excel-courses/new")
+def excel_course_new(request: Request, user: User | None = Depends(current_user_or_none)):
+    current = require_page_user(request, user)
+    if isinstance(current, RedirectResponse):
+        return current
+    if response := ensure_admin(current):
+        return response
+    return render(
+        request,
+        "excel_course_form.html",
+        {"course": None, "action": "/excel-courses/new", "workbook_path": excel_course_service.get_excel_path()},
+    )
+
+
+@router.post("/excel-courses/new")
+def excel_course_create(
+    request: Request,
+    title: str = Form(...),
+    short_description: str = Form(""),
+    category: str = Form(""),
+    duration: str = Form(""),
+    status_value: str = Form("attivo", alias="status"),
+    user: User | None = Depends(current_user_or_none),
+):
+    current = require_page_user(request, user)
+    if isinstance(current, RedirectResponse):
+        return current
+    if response := ensure_admin(current):
+        return response
+    try:
+        excel_course_service.create_excel_course(
+            ExcelCoursePayload(
+                title=title,
+                short_description=short_description,
+                category=category,
+                duration=duration,
+                status=status_value,
+            )
+        )
+        return redirect("/excel-courses?success=Corso+inserito+nel+file+Excel")
+    except ExcelCourseError as exc:
+        return redirect(f"/excel-courses/new?error={quote_message(str(exc))}")
+
+
+@router.get("/excel-courses/{course_id}/edit")
+def excel_course_edit(request: Request, course_id: int, user: User | None = Depends(current_user_or_none)):
+    current = require_page_user(request, user)
+    if isinstance(current, RedirectResponse):
+        return current
+    if response := ensure_admin(current):
+        return response
+    course = excel_course_service.get_excel_course(course_id)
+    if not course:
+        return redirect("/excel-courses?error=Corso+Excel+non+trovato")
+    return render(
+        request,
+        "excel_course_form.html",
+        {"course": course, "action": f"/excel-courses/{course.id}/edit", "workbook_path": excel_course_service.get_excel_path()},
+    )
+
+
+@router.post("/excel-courses/{course_id}/edit")
+def excel_course_update(
+    request: Request,
+    course_id: int,
+    title: str = Form(...),
+    short_description: str = Form(""),
+    category: str = Form(""),
+    duration: str = Form(""),
+    status_value: str = Form("attivo", alias="status"),
+    user: User | None = Depends(current_user_or_none),
+):
+    current = require_page_user(request, user)
+    if isinstance(current, RedirectResponse):
+        return current
+    if response := ensure_admin(current):
+        return response
+    try:
+        excel_course_service.update_excel_course(
+            course_id,
+            ExcelCoursePayload(
+                title=title,
+                short_description=short_description,
+                category=category,
+                duration=duration,
+                status=status_value,
+            ),
+        )
+        return redirect("/excel-courses?success=Corso+Excel+aggiornato")
+    except ExcelCourseError as exc:
+        return redirect(f"/excel-courses/{course_id}/edit?error={quote_message(str(exc))}")
+
+
+@router.post("/excel-courses/{course_id}/archive")
+def excel_course_archive(request: Request, course_id: int, user: User | None = Depends(current_user_or_none)):
+    current = require_page_user(request, user)
+    if isinstance(current, RedirectResponse):
+        return current
+    if response := ensure_admin(current):
+        return response
+    try:
+        excel_course_service.archive_excel_course(course_id)
+        return redirect("/excel-courses?success=Corso+Excel+archiviato")
+    except ExcelCourseError as exc:
+        return redirect(f"/excel-courses?error={quote_message(str(exc))}")
+
+
+@router.post("/excel-courses/{course_id}/delete")
+def excel_course_delete(request: Request, course_id: int, user: User | None = Depends(current_user_or_none)):
+    current = require_page_user(request, user)
+    if isinstance(current, RedirectResponse):
+        return current
+    if response := ensure_admin(current):
+        return response
+    try:
+        excel_course_service.delete_excel_course(course_id)
+        return redirect("/excel-courses?success=Corso+Excel+eliminato")
+    except ExcelCourseError as exc:
+        return redirect(f"/excel-courses?error={quote_message(str(exc))}")
 
 
 @router.post("/courses/{course_id}/materials")

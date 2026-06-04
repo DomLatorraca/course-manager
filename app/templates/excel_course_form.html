@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ "Modifica corso Excel" if course else "Nuovo corso Excel" }}</h1>
+    <p>Le modifiche vengono salvate direttamente nel workbook configurato.</p>
+    <div class="meta">File: {{ workbook_path }}</div>
+  </div>
+</div>
+<form class="form" method="post" action="{{ action }}">
+  <label>Titolo
+    <input name="title" value="{{ course.title if course else '' }}" required maxlength="255">
+  </label>
+  <label>Descrizione breve
+    <textarea name="short_description" rows="4">{{ course.short_description if course else '' }}</textarea>
+  </label>
+  <div class="form-grid">
+    <label>Categoria
+      <input name="category" value="{{ course.category if course else '' }}">
+    </label>
+    <label>Durata indicativa
+      <input name="duration" value="{{ course.duration if course else '' }}">
+    </label>
+    <label>Stato
+      <select name="status">
+        <option value="attivo" {% if not course or course.status == 'attivo' %}selected{% endif %}>attivo</option>
+        <option value="archiviato" {% if course and course.status == 'archiviato' %}selected{% endif %}>archiviato</option>
+      </select>
+    </label>
+  </div>
+  <div class="actions">
+    <button class="button primary" type="submit">Salva su Excel</button>
+    <a class="button ghost" href="/excel-courses">Annulla</a>
+  </div>
+</form>
+{% endblock %}
