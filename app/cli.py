@@ -48,6 +48,7 @@ def cmd_import_excel_courses(args: argparse.Namespace) -> None:
             sheet_name=sheet_name,
             update_existing=not args.no_update_existing,
             dry_run=args.dry_run,
+            include_participants=not args.only_courses,
         )
 
     mode = "simulazione" if args.dry_run else "import"
@@ -55,6 +56,15 @@ def cmd_import_excel_courses(args: argparse.Namespace) -> None:
         f"Risultato {mode} corsi Excel: "
         f"creati={result.created}, aggiornati={result.updated}, saltati={result.skipped}."
     )
+    if not args.only_courses:
+        print(
+            "Iscritti/iscrizioni: "
+            f"iscritti_creati={result.students_created}, "
+            f"iscritti_aggiornati={result.students_updated}, "
+            f"iscrizioni_create={result.enrollments_created}, "
+            f"iscrizioni_aggiornate={result.enrollments_updated}, "
+            f"iscrizioni_saltate={result.enrollments_skipped}."
+        )
     if result.errors:
         print("Errori:")
         for error in result.errors:
@@ -77,6 +87,7 @@ def main() -> None:
     import_excel_parser.add_argument("--path", help="Percorso del workbook Excel. Se omesso usa EXCEL_COURSES_PATH.")
     import_excel_parser.add_argument("--sheet", help="Nome del foglio corsi. Se omesso usa EXCEL_COURSES_SHEET.")
     import_excel_parser.add_argument("--no-update-existing", action="store_true", help="Non aggiornare corsi già presenti con lo stesso titolo")
+    import_excel_parser.add_argument("--only-courses", action="store_true", help="Importa solo l'anagrafica corsi, senza iscritti e iscrizioni")
     import_excel_parser.add_argument("--dry-run", action="store_true", help="Mostra cosa verrebbe importato senza scrivere nel database")
     import_excel_parser.set_defaults(func=cmd_import_excel_courses)
 

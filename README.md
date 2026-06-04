@@ -152,7 +152,7 @@ EXCEL_COURSES_PATH=C:\Users\Utente\Downloads\Formazione dta 2024).xlsx
 EXCEL_COURSES_SHEET=Corsi
 ```
 
-Per popolare o aggiornare il database con i corsi presenti nell'Excel:
+Per popolare o aggiornare il database con corsi, iscritti e iscrizioni presenti nell'Excel:
 
 ```bash
 python -m app.cli import-excel-courses
@@ -164,7 +164,15 @@ Il comando usa `EXCEL_COURSES_PATH` e `EXCEL_COURSES_SHEET`. Puoi anche passare 
 python -m app.cli import-excel-courses --path "/percorso/Formazione dta 2024).xlsx"
 ```
 
-Il comando è idempotente: abbina i corsi per titolo, crea quelli mancanti e aggiorna quelli già presenti. Per vedere cosa farebbe senza scrivere nel database:
+Il comando è idempotente: abbina i corsi per titolo, crea quelli mancanti e aggiorna quelli già presenti. Legge anche i partecipanti in colonna A dei blocchi calendario, crea iscritti con email tecnica generata e crea le iscrizioni ai corsi. I valori del calendario come `GRIMANI`, `DOCENTE ESTERNO`, `ONLINE` e `PRESENZA` vengono salvati nelle note dell'iscrizione.
+
+Per importare solo l'anagrafica corsi:
+
+```bash
+python -m app.cli import-excel-courses --only-courses
+```
+
+Per vedere cosa farebbe senza scrivere nel database:
 
 ```bash
 python -m app.cli import-excel-courses --dry-run
