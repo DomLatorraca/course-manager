@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import mimetypes
 import shutil
 import uuid
 from pathlib import Path
@@ -67,6 +68,20 @@ def save_material(db: Session, course: Course, upload: UploadFile, title: str, d
 
 def get_material_path(material: Material) -> Path:
     return assert_inside_storage(Path(material.stored_path))
+
+
+def guess_material_media_type(filename: str) -> str:
+    extension = safe_extension(filename)
+    explicit = {
+        "md": "text/markdown; charset=utf-8",
+        "csv": "text/csv; charset=utf-8",
+        "ics": "text/calendar; charset=utf-8",
+        "json": "application/json; charset=utf-8",
+        "txt": "text/plain; charset=utf-8",
+    }
+    if extension in explicit:
+        return explicit[extension]
+    return mimetypes.guess_type(filename)[0] or "application/octet-stream"
 
 
 def delete_material(db: Session, material: Material) -> None:

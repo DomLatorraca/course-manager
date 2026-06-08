@@ -22,7 +22,7 @@ from app.services import course_service, enrollment_service, excel_course_servic
 from app.services.auth_service import change_password, create_user
 from app.services.excel_course_service import ExcelCourseError, ExcelCoursePayload
 from app.services.export_service import export_courses_csv, export_enrollments_csv, export_students_csv
-from app.services.file_service import delete_material, get_material_path, save_material
+from app.services.file_service import delete_material, get_material_path, guess_material_media_type, save_material
 from app.services.import_service import import_enrollments_csv, import_students_csv
 
 
@@ -398,6 +398,18 @@ def material_download(material_id: int, db: Session = Depends(get_db), user: Use
         raise HTTPException(status_code=404, detail="Materiale non trovato.")
     path = get_material_path(material)
     return FileResponse(path, filename=material.original_filename)
+
+
+@router.get("/materials/{material_id}/view")
+def material_view(material_id: int, db: Session = Depends(get_db), user: User | None = Depends(current_user_or_none)):
+    if not user:
+        return redirect("/login")
+    material = db.get(Material, material_id)
+    if not material:
+        raise HTTPException(status_code=404, detail="Materiale non trovato.")
+    path = get_material_path(material)
+    media_type = guess_material_media_type(material.original_filename)
+    return FileResponse(path, media_type=media_type, headers={"Content-Disposition": f'inline; filename="{material.original_filename}"'})
 
 
 @router.post("/materials/{material_id}/delete")

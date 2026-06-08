@@ -31,7 +31,10 @@
         {% for material in course.materials %}
           <tr>
             <td>{{ material.title }}<br><span class="muted">{{ material.description }}</span></td>
-            <td><a href="/materials/{{ material.id }}/download">{{ material.original_filename }}</a></td>
+            <td>
+              <a href="/materials/{{ material.id }}/view" target="_blank">Visualizza</a>
+              · <a href="/materials/{{ material.id }}/download">{{ material.original_filename }}</a>
+            </td>
             <td>{{ (material.size_bytes / 1024)|round(1) }} KB</td>
             <td>
               {% if current_user.role.value == 'admin' %}

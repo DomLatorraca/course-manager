@@ -178,6 +178,63 @@ Per vedere cosa farebbe senza scrivere nel database:
 python -m app.cli import-excel-courses --dry-run
 ```
 
+## Generazione materiali didattici
+
+Dopo l'import Excel puoi generare una dispensa PDF per ogni corso presente nel database:
+
+```bash
+python -m app.cli generate-course-materials --dry-run
+python -m app.cli generate-course-materials
+```
+
+I PDF vengono salvati nello storage configurato con `COURSE_FILES_DIR`, dentro la cartella del corso, e vengono registrati nella tabella materiali. Nel dettaglio corso l'app mostra sia il link `Visualizza` sia il download del file.
+
+Per generare un solo corso:
+
+```bash
+python -m app.cli generate-course-materials --course-id 1
+```
+
+Per non sovrascrivere materiali già generati:
+
+```bash
+python -m app.cli generate-course-materials --no-overwrite
+```
+
+## Import pacchetti materiali
+
+Se hai un pacchetto `.zip` con cartelle corso e file come `README.md`, `programma_didattico.md`, `calendario.csv`, `registro_presenze.csv`, `scheda_corso.md` e `manifest.json`, puoi importarlo nello storage dell'app:
+
+```bash
+python -m app.cli import-material-package --zip "/percorso/pacchetti_materiale_corsi.zip" --dry-run
+python -m app.cli import-material-package --zip "/percorso/pacchetti_materiale_corsi.zip"
+```
+
+Il comando legge il titolo corso dal `manifest.json`, cerca il corso nel database e registra ogni file come materiale del corso. I file vengono salvati sotto `COURSE_FILES_DIR/course_<id>/pacchetto_materiali/` e compaiono nel dettaglio corso con link `Visualizza` e download.
+
+Per importare anche gli zip dei singoli corsi come file scaricabili:
+
+```bash
+python -m app.cli import-material-package --zip "/percorso/pacchetti_materiale_corsi.zip" --include-archives
+```
+
+## Import materiali già presenti nello storage
+
+Se sul server esistono già file dentro `COURSE_FILES_DIR` e vuoi solo renderli visibili nell'app, registrali nel database con:
+
+```bash
+python -m app.cli import-storage-materials --path "/opt/course-manager/storage" --dry-run
+python -m app.cli import-storage-materials --path "/opt/course-manager/storage"
+```
+
+Il comando non sposta i file: crea solo i record nella tabella materiali. Per collegare un file al corso riconosce:
+
+- cartelle `course_<id>`, ad esempio `/opt/course-manager/storage/course_12/manuale.pdf`;
+- cartelle con titolo corso, ad esempio `/opt/course-manager/storage/CORSO AI 2025 - 2026/programma.md`;
+- percorsi che contengono in modo chiaro il titolo del corso.
+
+I file non associabili vengono mostrati negli avvisi del `--dry-run`.
+
 Esempio dopo un `git pull` sul server:
 
 ```bash
@@ -185,6 +242,9 @@ source .venv/bin/activate
 pip install -r requirements.txt
 python -m app.cli init-db
 python -m app.cli import-excel-courses
+python -m app.cli import-material-package --zip "/opt/course-manager/data/pacchetti_materiale_corsi.zip"
+python -m app.cli import-storage-materials --path "/opt/course-manager/storage"
+python -m app.cli generate-course-materials
 ```
 
 ## Import CSV
