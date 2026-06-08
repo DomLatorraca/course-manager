@@ -13,3 +13,5 @@ openpyxl
 reportlab
 pytest
 httpx
+pymysql
+cryptography
