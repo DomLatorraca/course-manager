@@ -111,8 +111,8 @@ def test_material_package_import_supports_pdf_package_without_manifest(db, tmp_p
     course = create_course(db, CourseCreate(title="CORSO TEST PDF 2025", short_description="", category="", duration=""))
     package = tmp_path / "pacchetto_pdf.zip"
     with ZipFile(package, "w") as archive:
-        archive.writestr("01_CORSO_TEST_PDF_2025/programma_corso.pdf", b"%PDF-1.4\n/Title (Programma corso - CORSO TEST PDF 2025)\n")
-        archive.writestr("01_CORSO_TEST_PDF_2025/slide_01_intro.pdf", b"%PDF-1.4\n/Title (CORSO TEST PDF 2025 - Intro)\n")
+        archive.writestr("11_CORSO_TEST_PDF_2025/programma_corso.pdf", b"%PDF-1.4\n/Title (programma_corso.html)\n")
+        archive.writestr("11_CORSO_TEST_PDF_2025/slide_01_intro.pdf", b"%PDF-1.4\n/Title (slide_01_intro.html)\n")
 
     result = import_material_package(db, package)
 
@@ -120,6 +120,21 @@ def test_material_package_import_supports_pdf_package_without_manifest(db, tmp_p
     assert result.skipped == 0
     materials = db.scalars(select(Material).where(Material.course_id == course.id).order_by(Material.original_filename)).all()
     assert [material.title for material in materials] == ["Programma corso", "Slide 01 Intro"]
+
+
+def test_material_package_import_distinguishes_full_stack_package_folders(db, tmp_path: Path):
+    hyphen_course = create_course(db, CourseCreate(title="CORSO FULL-STACK 2025", short_description="", category="", duration=""))
+    plain_course = create_course(db, CourseCreate(title="CORSO FULL STACK 2025", short_description="", category="", duration=""))
+    package = tmp_path / "pacchetto_pdf.zip"
+    with ZipFile(package, "w") as archive:
+        archive.writestr("03_CORSO_FULL_STACK_2025/programma_corso.pdf", b"%PDF-1.4\n/Title (programma_corso.html)\n")
+        archive.writestr("05_CORSO_FULL_STACK_2025/programma_corso.pdf", b"%PDF-1.4\n/Title (programma_corso.html)\n")
+
+    result = import_material_package(db, package)
+
+    assert result.created == 2
+    assert db.scalar(select(Material).where(Material.course_id == hyphen_course.id)) is not None
+    assert db.scalar(select(Material).where(Material.course_id == plain_course.id)) is not None
 
 
 def test_material_media_types_are_browser_viewable():

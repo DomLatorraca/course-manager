@@ -118,12 +118,14 @@ def import_material_package(
 
 def _read_package_titles(archive: ZipFile) -> dict[str, str]:
     titles: dict[str, str] = {}
+    package_keys: set[str] = set()
     for info in archive.infolist():
         if info.is_dir():
             continue
         path = PurePosixPath(info.filename)
         if len(path.parts) < 2:
             continue
+        package_keys.add(path.parts[0])
 
         title = ""
         if info.filename.endswith("/manifest.json"):
@@ -137,6 +139,8 @@ def _read_package_titles(archive: ZipFile) -> dict[str, str]:
 
         if title:
             titles[path.parts[0]] = " ".join(title.split())
+    for package_key in package_keys:
+        titles.setdefault(package_key, _course_title_from_package_key(package_key))
     return titles
 
 
@@ -260,6 +264,27 @@ def _course_title_from_pdf_metadata(content: bytes) -> str:
     if title.startswith(prefix):
         return title[len(prefix) :].strip()
     return title if title.startswith("CORSO ") else ""
+
+
+def _course_title_from_package_key(package_key: str) -> str:
+    explicit = {
+        "01_CORSO_SISTEMISTI_FULL_STACK_2025": "CORSO SISTEMISTI/FULL-STACK 2025",
+        "02_CORSO_FLUTTER_FULL_STACK_2025": "CORSO FLUTTER/FULL-STACK 2025",
+        "03_CORSO_FULL_STACK_2025": "CORSO FULL-STACK 2025",
+        "04_CORSO_MICROSOFT_2025": "CORSO MICROSOFT 2025",
+        "05_CORSO_FULL_STACK_2025": "CORSO FULL STACK 2025",
+        "06_CORSO_SALESFORCE_2025_2026": "CORSO SALESFORCE 2025 - 2026",
+        "07_CORSO_MICROSOFT_2025_2026": "CORSO MICROSOFT 2025 - 2026",
+        "08_CORSO_AI_2025_2026": "CORSO AI 2025 - 2026",
+        "09_CORSO_FULL_STACK_2025_2026": "CORSO FULL STACK 2025 - 2026",
+        "10_CORSO_MKT_CLOUD_2025_2026": "CORSO MKT CLOUD 2025 - 2026",
+    }
+    if package_key in explicit:
+        return explicit[package_key]
+    without_prefix = re.sub(r"^\d+_", "", package_key)
+    title = without_prefix.replace("_", " ")
+    title = re.sub(r"\b(20\d{2})\s+(20\d{2})\b", r"\1 - \2", title)
+    return " ".join(title.split())
 
 
 def _decode_pdf_metadata_text(value: str) -> str:
