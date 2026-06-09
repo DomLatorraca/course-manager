@@ -15,6 +15,7 @@ from app.models.student import Student
 from app.models.user import User, UserRole
 from app.services.auth_service import change_password, create_user
 from app.services.excel_import_service import import_excel_courses_to_db
+from app.services.file_service import get_material_path
 from app.services.material_package_service import import_material_package
 from app.services.storage_material_import_service import import_storage_materials
 from app.services.student_service import STUDENT_EMAIL_DOMAIN, normalize_all_student_email_domains
@@ -188,6 +189,45 @@ def cmd_clear_training_data(args: argparse.Namespace) -> None:
     )
 
 
+def cmd_clear_course_materials(args: argparse.Namespace) -> None:
+    init_db()
+    if not args.yes and not args.dry_run:
+        raise SystemExit("Operazione annullata: aggiungi --yes per confermare la pulizia dei materiali.")
+
+    with SessionLocal() as db:
+        materials = list(db.scalars(select(Material).order_by(Material.id)).all())
+        files_to_delete: list[Path] = []
+        invalid_paths: list[str] = []
+
+        for material in materials:
+            try:
+                path = get_material_path(material)
+            except ValueError as exc:
+                invalid_paths.append(f"{material.id}: {exc}")
+                continue
+            if path.exists():
+                files_to_delete.append(path)
+
+        if args.dry_run:
+            db.rollback()
+        else:
+            if not args.keep_files:
+                for path in files_to_delete:
+                    path.unlink(missing_ok=True)
+            db.execute(delete(Material))
+            db.commit()
+
+    mode = "simulazione" if args.dry_run else "pulizia"
+    print(
+        f"Risultato {mode} materiali corsi: "
+        f"materiali={len(materials)}, file_presenti={len(files_to_delete)}, percorsi_non_validi={len(invalid_paths)}."
+    )
+    if invalid_paths:
+        print("Avvisi:")
+        for warning in invalid_paths:
+            print(f"- {warning}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Course Manager CLI")
     subparsers = parser.add_subparsers(required=True)
@@ -235,6 +275,12 @@ def main() -> None:
     clear_training_parser.add_argument("--yes", action="store_true", help="Conferma la pulizia dei dati didattici")
     clear_training_parser.add_argument("--dry-run", action="store_true", help="Mostra quanti dati verrebbero cancellati senza scrivere database")
     clear_training_parser.set_defaults(func=cmd_clear_training_data)
+
+    clear_materials_parser = subparsers.add_parser("clear-course-materials", help="Rimuove dal database i materiali dei corsi senza toccare corsi, iscritti e utenti")
+    clear_materials_parser.add_argument("--yes", action="store_true", help="Conferma la pulizia dei materiali")
+    clear_materials_parser.add_argument("--keep-files", action="store_true", help="Cancella solo i record dal database, lasciando i file nello storage")
+    clear_materials_parser.add_argument("--dry-run", action="store_true", help="Mostra quanti materiali verrebbero cancellati senza scrivere database")
+    clear_materials_parser.set_defaults(func=cmd_clear_course_materials)
 
     args = parser.parse_args()
     args.func(args)

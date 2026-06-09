@@ -119,16 +119,22 @@ def import_material_package(
 def _read_package_titles(archive: ZipFile) -> dict[str, str]:
     titles: dict[str, str] = {}
     for info in archive.infolist():
-        if info.is_dir() or not info.filename.endswith("/manifest.json"):
+        if info.is_dir():
             continue
         path = PurePosixPath(info.filename)
         if len(path.parts) < 2:
             continue
-        try:
-            data = json.loads(archive.read(info).decode("utf-8-sig"))
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            continue
-        title = str(data.get("titolo") or data.get("course_title") or data.get("title") or "").strip()
+
+        title = ""
+        if info.filename.endswith("/manifest.json"):
+            try:
+                data = json.loads(archive.read(info).decode("utf-8-sig"))
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                continue
+            title = str(data.get("titolo") or data.get("course_title") or data.get("title") or "").strip()
+        elif path.name == "programma_corso.pdf":
+            title = _course_title_from_pdf_metadata(archive.read(info))
+
         if title:
             titles[path.parts[0]] = " ".join(title.split())
     return titles
@@ -224,6 +230,7 @@ def _title_for_file(relative_name: str) -> str:
         "elenco_partecipanti": "Elenco partecipanti",
         "esercitazioni_e_verifiche": "Esercitazioni e verifiche",
         "manifest": "Manifest corso",
+        "programma_corso": "Programma corso",
         "programma_didattico": "Programma didattico",
         "registro_presenze": "Registro presenze",
         "scheda_corso": "Scheda corso",
@@ -241,6 +248,23 @@ def _slugify_part(value: str) -> str:
     stem = re.sub(r"[^a-z0-9]+", "-", path.stem.lower()).strip("-") or "materiale"
     suffix = re.sub(r"[^a-z0-9.]+", "", path.suffix.lower())
     return f"{stem[:90]}{suffix}"
+
+
+def _course_title_from_pdf_metadata(content: bytes) -> str:
+    text = content[:8000].decode("latin-1", errors="ignore")
+    match = re.search(r"/Title\s*\((.*?)\)", text, flags=re.DOTALL)
+    if not match:
+        return ""
+    title = _decode_pdf_metadata_text(match.group(1))
+    prefix = "Programma corso - "
+    if title.startswith(prefix):
+        return title[len(prefix) :].strip()
+    return title if title.startswith("CORSO ") else ""
+
+
+def _decode_pdf_metadata_text(value: str) -> str:
+    value = value.replace(r"\(", "(").replace(r"\)", ")").replace(r"\\", "\\")
+    return " ".join(value.split())
 
 
 def _utcnow() -> datetime:

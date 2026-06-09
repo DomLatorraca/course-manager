@@ -87,6 +87,21 @@ def test_material_package_import_registers_files_and_is_idempotent(db, tmp_path:
     assert len(materials_after) == 3
 
 
+def test_material_package_import_supports_pdf_package_without_manifest(db, tmp_path: Path):
+    course = create_course(db, CourseCreate(title="CORSO TEST PDF 2025", short_description="", category="", duration=""))
+    package = tmp_path / "pacchetto_pdf.zip"
+    with ZipFile(package, "w") as archive:
+        archive.writestr("01_CORSO_TEST_PDF_2025/programma_corso.pdf", b"%PDF-1.4\n/Title (Programma corso - CORSO TEST PDF 2025)\n")
+        archive.writestr("01_CORSO_TEST_PDF_2025/slide_01_intro.pdf", b"%PDF-1.4\n/Title (CORSO TEST PDF 2025 - Intro)\n")
+
+    result = import_material_package(db, package)
+
+    assert result.created == 2
+    assert result.skipped == 0
+    materials = db.scalars(select(Material).where(Material.course_id == course.id).order_by(Material.original_filename)).all()
+    assert [material.title for material in materials] == ["Programma corso", "Slide 01 Intro"]
+
+
 def test_material_media_types_are_browser_viewable():
     assert guess_material_media_type("programma_didattico.md").startswith("text/markdown")
     assert guess_material_media_type("calendario.csv").startswith("text/csv")
