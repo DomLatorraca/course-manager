@@ -34,6 +34,26 @@ def test_material_upload_sanitizes_filename_and_can_delete_file(db):
     assert not path.exists()
 
 
+def test_material_delete_removes_record_even_when_stored_path_is_invalid(db, tmp_path: Path):
+    course = create_course(db, CourseCreate(title="Manuale", short_description="", category="", duration=""))
+    material = Material(
+        course_id=course.id,
+        title="Vecchio materiale",
+        description="",
+        original_filename="vecchio.pdf",
+        stored_filename="vecchio.pdf",
+        stored_path=str(tmp_path / "fuori-storage" / "vecchio.pdf"),
+        size_bytes=10,
+    )
+    db.add(material)
+    db.commit()
+    material_id = material.id
+
+    delete_material(db, material)
+
+    assert db.get(Material, material_id) is None
+
+
 def test_material_rejects_disallowed_extension(db):
     course = create_course(db, CourseCreate(title="Manuale", short_description="", category="", duration=""))
     with pytest.raises(ValueError, match="Estensione non consentita"):

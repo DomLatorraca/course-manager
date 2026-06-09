@@ -85,9 +85,15 @@ def guess_material_media_type(filename: str) -> str:
 
 
 def delete_material(db: Session, material: Material) -> None:
-    path = get_material_path(material)
-    if path.exists():
-        path.unlink()
+    try:
+        path = get_material_path(material)
+    except ValueError:
+        path = None
+    if path and path.exists():
+        try:
+            path.unlink()
+        except OSError:
+            pass
     db.delete(material)
     db.commit()
 
