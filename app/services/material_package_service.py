@@ -160,7 +160,7 @@ def _list_package_files(archive: ZipFile, package_titles: dict[str, str], includ
                 relative_name=relative_name,
                 original_filename=original_filename,
                 title=_title_for_file(relative_name),
-                description=f"Importato dal pacchetto materiali: {info.filename}",
+                description="",
                 size_bytes=info.file_size,
             )
         )

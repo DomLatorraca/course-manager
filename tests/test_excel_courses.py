@@ -105,8 +105,7 @@ def test_import_excel_courses_populates_db_from_calendar_titles(db, tmp_path: Pa
     assert course.short_description == ""
     student = db.scalar(select(Student).where(Student.last_name == "Rossi", Student.first_name == "Mario"))
     assert student is not None
-    assert student.email.endswith("@digitaltrainingacademy.it")
-    assert "@course-manager.invalid" not in student.email
+    assert student.email == "m.rossi@digitaltrainingacademy.it"
     enrollment = db.scalar(select(Enrollment).where(Enrollment.course_id == course.id, Enrollment.student_id == student.id))
     assert enrollment is not None
     assert "GRIMANI" in enrollment.notes
@@ -178,7 +177,7 @@ def test_import_excel_courses_is_idempotent_for_participants(db, tmp_path: Path)
     assert len(enrollments) == 1
     assert students[0].last_name == "Di Dio"
     assert students[0].first_name == "Giovanni Paolo"
-    assert students[0].email.endswith("@digitaltrainingacademy.it")
+    assert students[0].email == "g.di-dio@digitaltrainingacademy.it"
 
 
 def test_import_excel_courses_updates_legacy_generated_student_email(db, tmp_path: Path):
@@ -198,4 +197,4 @@ def test_import_excel_courses_updates_legacy_generated_student_email(db, tmp_pat
     students = db.scalars(select(Student)).all()
     assert result.students_updated == 1
     assert len(students) == 1
-    assert students[0].email == "excel-rossi-mario-91cbe1cab4@digitaltrainingacademy.it"
+    assert students[0].email == "m.rossi@digitaltrainingacademy.it"

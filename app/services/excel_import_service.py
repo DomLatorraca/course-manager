@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from hashlib import sha1
 from pathlib import Path
 import re
 from typing import Any
@@ -13,7 +12,7 @@ from app.models.course import Course, CourseStatus
 from app.models.enrollment import Enrollment
 from app.models.student import Student
 from app.services.excel_course_service import get_sheet_name, list_excel_courses
-from app.services.student_service import STUDENT_EMAIL_DOMAIN
+from app.services.student_service import STUDENT_EMAIL_DOMAIN, build_student_email
 from openpyxl import load_workbook
 from openpyxl.utils.exceptions import InvalidFileException
 
@@ -105,9 +104,9 @@ def import_excel_courses_to_db(
                 errors.append(f"Partecipante '{participant.full_name}': corso '{participant.course_title}' non trovato nel database.")
                 continue
 
-            email = _generated_student_email(participant.full_name)
-            student = _find_imported_student(db, participant.full_name)
             first_name, last_name = _split_full_name(participant.full_name)
+            email = _generated_student_email(first_name, last_name)
+            student = _find_imported_student(db, participant.full_name, first_name, last_name)
             student_notes = ""
 
             if student:
@@ -289,24 +288,38 @@ def _split_full_name(full_name: str) -> tuple[str, str]:
     return first_name, last_name
 
 
-def _generated_student_email(full_name: str) -> str:
-    slug = re.sub(r"[^a-z0-9]+", "-", full_name.lower()).strip("-") or "iscritto"
-    digest = sha1(full_name.strip().casefold().encode("utf-8")).hexdigest()[:10]
-    return f"excel-{slug}-{digest}@{STUDENT_EMAIL_DOMAIN}"
+def _generated_student_email(first_name: str, last_name: str) -> str:
+    return build_student_email(first_name, last_name)
 
 
 def _legacy_generated_student_email(full_name: str) -> str:
+    from hashlib import sha1
+
     slug = re.sub(r"[^a-z0-9]+", "-", full_name.lower()).strip("-") or "iscritto"
     digest = sha1(full_name.strip().casefold().encode("utf-8")).hexdigest()[:10]
     return f"excel-{slug}-{digest}@course-manager.invalid"
 
 
-def _find_imported_student(db: Session, full_name: str) -> Student | None:
-    current_email = _generated_student_email(full_name)
+def _legacy_generated_dta_student_email(full_name: str) -> str:
+    from hashlib import sha1
+
+    slug = re.sub(r"[^a-z0-9]+", "-", full_name.lower()).strip("-") or "iscritto"
+    digest = sha1(full_name.strip().casefold().encode("utf-8")).hexdigest()[:10]
+    return f"excel-{slug}-{digest}@{STUDENT_EMAIL_DOMAIN}"
+
+
+def _find_imported_student(db: Session, full_name: str, first_name: str | None = None, last_name: str | None = None) -> Student | None:
+    if first_name is None or last_name is None:
+        first_name, last_name = _split_full_name(full_name)
+    current_email = _generated_student_email(first_name, last_name)
     legacy_email = _legacy_generated_student_email(full_name)
+    legacy_dta_email = _legacy_generated_dta_student_email(full_name)
     current = db.scalar(select(Student).where(Student.email == current_email))
     if current:
         return current
+    legacy_dta = db.scalar(select(Student).where(Student.email == legacy_dta_email))
+    if legacy_dta:
+        return legacy_dta
     return db.scalar(select(Student).where(Student.email == legacy_email))
 
 

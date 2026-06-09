@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import re
+import unicodedata
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
@@ -44,7 +45,7 @@ def get_student_by_email(db: Session, email: str) -> Student | None:
 
 
 def create_student(db: Session, data: StudentCreate) -> Student:
-    email = normalize_student_email_domain(data.email)
+    email = build_student_email(data.first_name, data.last_name)
     if get_student_by_email(db, email):
         raise ValueError("Email già presente in anagrafica.")
     values = data.model_dump()
@@ -57,7 +58,7 @@ def create_student(db: Session, data: StudentCreate) -> Student:
 
 
 def update_student(db: Session, student: Student, data: StudentUpdate) -> Student:
-    new_email = normalize_student_email_domain(data.email)
+    new_email = build_student_email(data.first_name, data.last_name)
     existing = get_student_by_email(db, new_email)
     if existing and existing.id != student.id:
         raise ValueError("Email già presente in anagrafica.")
@@ -85,6 +86,12 @@ def normalize_student_email_domain(email: str) -> str:
     return f"{local_part}@{STUDENT_EMAIL_DOMAIN}"
 
 
+def build_student_email(first_name: str, last_name: str) -> str:
+    first_initial = _first_email_letter(first_name)
+    last_local = _name_local_part(last_name)
+    return f"{first_initial}.{last_local}@{STUDENT_EMAIL_DOMAIN}"
+
+
 def normalize_all_student_email_domains(db: Session, dry_run: bool = False) -> StudentEmailNormalizationResult:
     updated = 0
     unchanged = 0
@@ -93,7 +100,7 @@ def normalize_all_student_email_domains(db: Session, dry_run: bool = False) -> S
     changes: list[tuple[Student, str]] = []
 
     for student in students:
-        normalized = _unique_email(normalize_student_email_domain(student.email), reserved)
+        normalized = _unique_email(build_student_email(student.first_name, student.last_name), reserved)
         reserved.add(normalized)
         if student.email == normalized:
             unchanged += 1
@@ -118,10 +125,26 @@ def normalize_all_student_email_domains(db: Session, dry_run: bool = False) -> S
 
 
 def _safe_email_local(value: str) -> str:
-    cleaned = re.sub(r"\s+", "-", value.strip().lower())
+    cleaned = _ascii_lower(value)
+    cleaned = re.sub(r"\s+", "-", cleaned)
     cleaned = re.sub(r"[^a-z0-9._%+-]+", "-", cleaned)
     cleaned = re.sub(r"[._%+-]{2,}", "-", cleaned).strip("._%+-")
     return cleaned or "iscritto"
+
+
+def _name_local_part(value: str) -> str:
+    return _safe_email_local(value).replace(".", "-")
+
+
+def _first_email_letter(value: str) -> str:
+    cleaned = _ascii_lower(value)
+    match = re.search(r"[a-z0-9]", cleaned)
+    return match.group(0) if match else "x"
+
+
+def _ascii_lower(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value or "")
+    return normalized.encode("ascii", "ignore").decode("ascii").lower().strip()
 
 
 def _unique_email(email: str, reserved: set[str]) -> str:

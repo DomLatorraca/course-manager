@@ -74,7 +74,7 @@ def import_storage_materials(
 
         relative = resolved.relative_to(storage_root)
         title = _title_for_file(resolved)
-        description = f"Importato da storage esistente: {relative.as_posix()}"
+        description = ""
         if existing:
             existing.title = title
             existing.description = description

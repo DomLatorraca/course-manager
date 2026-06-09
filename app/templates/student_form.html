@@ -5,7 +5,7 @@
   <div class="form-grid">
     <label>Nome <input name="first_name" value="{{ student.first_name if student else '' }}" required></label>
     <label>Cognome <input name="last_name" value="{{ student.last_name if student else '' }}" required></label>
-    <label>Email <input name="email" type="email" value="{{ student.email if student else '' }}" required></label>
+    <input type="hidden" name="email" value="{{ student.email if student else 'iscritto@digitaltrainingacademy.it' }}">
     <label>Telefono <input name="phone" value="{{ student.phone if student else '' }}"></label>
     <label>Azienda/ente <input name="organization" value="{{ student.organization if student else '' }}"></label>
   </div>

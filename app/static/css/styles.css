@@ -63,11 +63,19 @@ p { color: var(--muted); margin: 6px 0 0; }
   gap: 24px;
 }
 .split > div, .grid-two > div { min-width: 0; }
-.course-detail-grid { align-items: start; }
-.course-panel { min-width: 0; }
+.course-detail-grid {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.course-panel {
+  min-width: 0;
+  overflow: hidden;
+}
 .table-scroll {
   width: 100%;
+  max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
 }
 table {
   width: 100%;
@@ -86,15 +94,30 @@ th, td {
 }
 th { font-size: 12px; text-transform: uppercase; color: var(--muted); background: #f2f4f7; }
 tr:last-child td { border-bottom: 0; }
-.materials-table, .enrollments-table { table-layout: fixed; }
-.materials-table th:nth-child(1) { width: 42%; }
-.materials-table th:nth-child(2) { width: 34%; }
-.materials-table th:nth-child(3) { width: 12%; }
-.materials-table th:nth-child(4) { width: 12%; }
-.enrollments-table th:nth-child(1) { width: 36%; }
-.enrollments-table th:nth-child(2) { width: 28%; }
-.enrollments-table th:nth-child(3) { width: 18%; }
-.enrollments-table th:nth-child(4) { width: 18%; }
+.table-scroll table { min-width: 100%; }
+.materials-table, .enrollments-table {
+  table-layout: fixed;
+}
+.materials-table th:nth-child(1), .materials-table td:nth-child(1) { width: 42%; }
+.materials-table th:nth-child(2), .materials-table td:nth-child(2) { width: 34%; }
+.materials-table th:nth-child(3), .materials-table td:nth-child(3) { width: 12%; }
+.materials-table th:nth-child(4), .materials-table td:nth-child(4) { width: 12%; }
+.enrollments-table th:nth-child(1), .enrollments-table td:nth-child(1) { width: 38%; }
+.enrollments-table th:nth-child(2), .enrollments-table td:nth-child(2) { width: 28%; }
+.enrollments-table th:nth-child(3), .enrollments-table td:nth-child(3) { width: 18%; }
+.enrollments-table th:nth-child(4), .enrollments-table td:nth-child(4) { width: 16%; }
+.file-cell a { display: inline-block; }
+.filename-link {
+  display: block;
+  margin-top: 2px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.enrollments-table .status-form select {
+  min-width: 0;
+  width: 100%;
+}
 .filters, .inline-form, .password-form, .actions, .stack {
   display: flex;
   gap: 10px;
@@ -186,5 +209,6 @@ textarea { resize: vertical; }
   .metrics, .grid-two, .split, .form-grid { grid-template-columns: 1fr; }
   .page-head { flex-direction: column; }
   table { display: block; overflow-x: auto; white-space: nowrap; }
+  .table-scroll table { display: table; white-space: normal; }
 }
 

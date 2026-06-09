@@ -27,16 +27,16 @@
         <button class="button primary" type="submit">Carica</button>
       </form>
     {% endif %}
-    <div class="table-scroll">
+    <div class="table-scroll materials-scroll">
     <table class="materials-table">
       <thead><tr><th>Titolo</th><th>File</th><th>Dimensione</th><th></th></tr></thead>
       <tbody>
         {% for material in course.materials %}
           <tr>
-            <td>{{ material.title }}{% if material.description and 'Importato dal foglio' not in material.description %}<br><span class="muted">{{ material.description }}</span>{% endif %}</td>
-            <td>
+            <td>{{ material.title }}{% if material.description and 'Importato dal foglio' not in material.description and 'Importato dal pacchetto materiali' not in material.description and 'Importato da storage esistente' not in material.description %}<br><span class="muted">{{ material.description }}</span>{% endif %}</td>
+            <td class="file-cell">
               <a href="/materials/{{ material.id }}/view" target="_blank">Visualizza</a>
-              · <a href="/materials/{{ material.id }}/download">{{ material.original_filename }}</a>
+              <a class="filename-link" href="/materials/{{ material.id }}/download">{{ material.original_filename }}</a>
             </td>
             <td>{{ (material.size_bytes / 1024)|round(1) }} KB</td>
             <td>

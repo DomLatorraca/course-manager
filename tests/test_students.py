@@ -14,13 +14,13 @@ from app.services.student_service import create_student, delete_student, normali
 def test_student_email_is_unique(db):
     create_student(db, StudentCreate(first_name="Luca", last_name="Bianchi", email="luca@example.com"))
     with pytest.raises(ValueError, match="Email già presente"):
-        create_student(db, StudentCreate(first_name="Luca", last_name="Verdi", email="luca@example.com"))
+        create_student(db, StudentCreate(first_name="Luca", last_name="Bianchi", email="altro@example.com"))
 
 
 def test_student_email_domain_is_normalized(db):
-    student = create_student(db, StudentCreate(first_name="Luca", last_name="Bianchi", email="luca@example.com"))
+    student = create_student(db, StudentCreate(first_name="Federico", last_name="Tani", email="luca@example.com"))
 
-    assert student.email == "luca@digitaltrainingacademy.it"
+    assert student.email == "f.tani@digitaltrainingacademy.it"
 
 
 def test_existing_student_email_domains_are_normalized(db):
@@ -36,8 +36,8 @@ def test_existing_student_email_domains_are_normalized(db):
 
     students = db.query(Student).order_by(Student.id).all()
     assert result.updated == 2
-    assert students[0].email == "a@digitaltrainingacademy.it"
-    assert students[1].email == "a-2@digitaltrainingacademy.it"
+    assert students[0].email == "a.rossi@digitaltrainingacademy.it"
+    assert students[1].email == "a.verdi@digitaltrainingacademy.it"
 
 
 def test_student_with_enrollments_cannot_be_deleted(db):
