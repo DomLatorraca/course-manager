@@ -13,6 +13,7 @@ from app.models.course import Course, CourseStatus
 from app.models.enrollment import Enrollment
 from app.models.student import Student
 from app.services.excel_course_service import get_sheet_name, list_excel_courses
+from app.services.student_service import STUDENT_EMAIL_DOMAIN
 from openpyxl import load_workbook
 from openpyxl.utils.exceptions import InvalidFileException
 
@@ -92,7 +93,7 @@ def import_excel_courses_to_db(
                     continue
 
             if dry_run and not course:
-                student = db.scalar(select(Student).where(Student.email == _generated_student_email(participant.full_name)))
+                student = _find_imported_student(db, participant.full_name)
                 if student:
                     students_updated += 1
                 else:
@@ -105,16 +106,17 @@ def import_excel_courses_to_db(
                 continue
 
             email = _generated_student_email(participant.full_name)
-            student = db.scalar(select(Student).where(Student.email == email))
+            student = _find_imported_student(db, participant.full_name)
             first_name, last_name = _split_full_name(participant.full_name)
-            student_notes = f"Importato da Excel: {participant.source_sheet}, riga {participant.source_row}."
+            student_notes = ""
 
             if student:
-                if _student_needs_update(student, first_name, last_name, student_notes):
+                if _student_needs_update(student, first_name, last_name, student_notes, email):
                     students_updated += 1
                     if not dry_run:
                         student.first_name = first_name
                         student.last_name = last_name
+                        student.email = email
                         student.notes = student_notes
                         db.add(student)
                 else:
@@ -126,7 +128,7 @@ def import_excel_courses_to_db(
                         first_name=first_name,
                         last_name=last_name,
                         email=email,
-                        organization="Excel formazione",
+                        organization="",
                         notes=student_notes,
                     )
                     db.add(student)
@@ -179,8 +181,8 @@ def import_excel_courses_to_db(
 
 def _copy_excel_course_to_model(course: Course, excel_course) -> None:
     course.title = excel_course.title
-    course.short_description = excel_course.short_description
-    course.category = excel_course.category
+    course.short_description = "" if _is_excel_source_text(excel_course.short_description) else excel_course.short_description
+    course.category = "" if _is_excel_sheet_name(excel_course.category) else excel_course.category
     course.duration = excel_course.duration
     course.status = CourseStatus(excel_course.status)
 
@@ -256,18 +258,18 @@ def _calendar_notes_for_row(sheet_title: str, row_number: int, cells: tuple[Any,
         values[normalized] = values.get(normalized, 0) + 1
 
     if not values:
-        return f"Importato da Excel: {sheet_title}, riga {row_number}."
+        return ""
 
     details = ", ".join(f"{label} ({count})" for label, count in sorted(values.items()))
-    return f"Importato da Excel: {sheet_title}, riga {row_number}. Valori calendario: {details}."
+    return f"Valori calendario: {details}."
 
 
 def _find_course_by_title(db: Session, title: str) -> Course | None:
     return db.scalar(select(Course).where(func.lower(Course.title) == title.lower()))
 
 
-def _student_needs_update(student: Student, first_name: str, last_name: str, notes: str) -> bool:
-    return student.first_name != first_name or student.last_name != last_name or student.notes != notes
+def _student_needs_update(student: Student, first_name: str, last_name: str, notes: str, email: str) -> bool:
+    return student.first_name != first_name or student.last_name != last_name or student.notes != notes or student.email != email
 
 
 def _split_full_name(full_name: str) -> tuple[str, str]:
@@ -290,7 +292,22 @@ def _split_full_name(full_name: str) -> tuple[str, str]:
 def _generated_student_email(full_name: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", full_name.lower()).strip("-") or "iscritto"
     digest = sha1(full_name.strip().casefold().encode("utf-8")).hexdigest()[:10]
+    return f"excel-{slug}-{digest}@{STUDENT_EMAIL_DOMAIN}"
+
+
+def _legacy_generated_student_email(full_name: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", full_name.lower()).strip("-") or "iscritto"
+    digest = sha1(full_name.strip().casefold().encode("utf-8")).hexdigest()[:10]
     return f"excel-{slug}-{digest}@course-manager.invalid"
+
+
+def _find_imported_student(db: Session, full_name: str) -> Student | None:
+    current_email = _generated_student_email(full_name)
+    legacy_email = _legacy_generated_student_email(full_name)
+    current = db.scalar(select(Student).where(Student.email == current_email))
+    if current:
+        return current
+    return db.scalar(select(Student).where(Student.email == legacy_email))
 
 
 def _clean_text(value: Any) -> str:
@@ -310,3 +327,11 @@ def _looks_like_number(value: str) -> bool:
 def _is_non_participant_label(value: str) -> bool:
     normalized = value.strip().upper()
     return normalized in {"LEGENDA", "GRIMANI", "DOCENTE ESTERNO", "ONLINE", "PRESENZA"}
+
+
+def _is_excel_source_text(value: str) -> bool:
+    return _clean_text(value).lower().startswith("importato dal foglio")
+
+
+def _is_excel_sheet_name(value: str) -> bool:
+    return bool(re.fullmatch(r"foglio\s*\d*", _clean_text(value), flags=re.IGNORECASE))

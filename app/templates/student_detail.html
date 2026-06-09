@@ -3,8 +3,10 @@
 <div class="page-head">
   <div>
     <h1>{{ student.last_name }} {{ student.first_name }}</h1>
-    <p>{{ student.email }}{% if student.phone %} · {{ student.phone }}{% endif %}</p>
-    <div class="meta">{{ student.organization }}</div>
+    {% if '@course-manager.invalid' not in student.email or student.phone %}
+      <p>{% if '@course-manager.invalid' not in student.email %}{{ student.email }}{% endif %}{% if student.phone %}{% if '@course-manager.invalid' not in student.email %} · {% endif %}{{ student.phone }}{% endif %}</p>
+    {% endif %}
+    {% if student.organization and student.organization != 'Excel formazione' %}<div class="meta">{{ student.organization }}</div>{% endif %}
   </div>
   {% if current_user.role.value == 'admin' %}
     <div class="actions">
@@ -13,21 +15,20 @@
     </div>
   {% endif %}
 </div>
-{% if student.notes %}<p class="note">{{ student.notes }}</p>{% endif %}
+{% if student.notes and 'Importato da Excel' not in student.notes %}<p class="note">{{ student.notes }}</p>{% endif %}
 <h2>Corsi associati</h2>
 <table>
-  <thead><tr><th>Corso</th><th>Categoria</th><th>Stato iscrizione</th><th>Data iscrizione</th><th>Completamento</th></tr></thead>
+  <thead><tr><th>Corso</th><th>Stato iscrizione</th><th>Data iscrizione</th><th>Completamento</th></tr></thead>
   <tbody>
     {% for enrollment in enrollments %}
       <tr>
         <td><a href="/courses/{{ enrollment.course_id }}">{{ enrollment.course.title }}</a></td>
-        <td>{{ enrollment.course.category }}</td>
         <td><span class="badge {{ enrollment.status.value }}">{{ enrollment.status.value }}</span></td>
         <td>{{ enrollment.enrolled_at.strftime('%d/%m/%Y') }}</td>
         <td>{{ enrollment.completed_at.strftime('%d/%m/%Y') if enrollment.completed_at else '-' }}</td>
       </tr>
     {% else %}
-      <tr><td colspan="5" class="muted">Nessuna iscrizione associata.</td></tr>
+      <tr><td colspan="4" class="muted">Nessuna iscrizione associata.</td></tr>
     {% endfor %}
   </tbody>
 </table>

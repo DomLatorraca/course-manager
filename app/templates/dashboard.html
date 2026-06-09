@@ -16,12 +16,12 @@
   <div>
     <h2>Ultimi corsi</h2>
     <table>
-      <thead><tr><th>Titolo</th><th>Categoria</th><th>Stato</th></tr></thead>
+      <thead><tr><th>Titolo</th><th>Stato</th></tr></thead>
       <tbody>
         {% for course in latest_courses %}
-          <tr><td><a href="/courses/{{ course.id }}">{{ course.title }}</a></td><td>{{ course.category }}</td><td><span class="badge">{{ course.status.value }}</span></td></tr>
+          <tr><td><a href="/courses/{{ course.id }}">{{ course.title }}</a></td><td><span class="badge">{{ course.status.value }}</span></td></tr>
         {% else %}
-          <tr><td colspan="3" class="muted">Nessun corso presente.</td></tr>
+          <tr><td colspan="2" class="muted">Nessun corso presente.</td></tr>
         {% endfor %}
       </tbody>
     </table>

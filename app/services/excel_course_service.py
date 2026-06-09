@@ -254,8 +254,8 @@ def _seed_courses_from_calendar(workbook: Workbook, target: Worksheet) -> bool:
                     [
                         next_id,
                         normalized,
-                        f"Importato dal foglio {worksheet.title}, riga {cell.row}",
-                        worksheet.title,
+                        "",
+                        "",
                         "",
                         "attivo",
                         now,

@@ -60,7 +60,7 @@ def generate_teaching_materials(
         _render_course_pdf(course, destination)
         size = destination.stat().st_size
         original_filename = destination.name
-        description = "Materiale didattico generato automaticamente in base al corso importato dall'Excel."
+        description = "Materiale didattico generato automaticamente per il corso."
 
         if existing:
             old_path = Path(existing.stored_path)
@@ -141,7 +141,7 @@ def _render_course_pdf(course: Course, destination: Path) -> None:
 
     pdf.setTitle(f"Dispensa didattica - {course.title}")
     heading(f"Dispensa didattica - {course.title}", 18)
-    paragraph(f"Categoria: {course.category or 'non specificata'} | Durata: {course.duration or 'non specificata'} | Stato: {course.status.value}")
+    paragraph(f"Durata: {course.duration or 'non specificata'} | Stato: {course.status.value}")
     if course.short_description:
         paragraph(course.short_description)
 
@@ -176,7 +176,7 @@ def _render_course_pdf(course: Course, destination: Path) -> None:
 
     calendar_values = _calendar_values(course)
     if calendar_values:
-        heading("Indicazioni dal calendario Excel", 14)
+        heading("Indicazioni calendario", 14)
         paragraph(", ".join(calendar_values))
 
     pdf.setFont("Helvetica-Oblique", 8)

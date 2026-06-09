@@ -2,15 +2,13 @@
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Corsi Excel</h1>
-    <p>Inserimento, modifica e cancellazione dei corsi salvati nel workbook.</p>
-    <div class="meta">File: {{ workbook_path }} · Foglio: {{ sheet_name }}</div>
+    <h1>Anagrafica corsi</h1>
+    <p>Inserimento, modifica e cancellazione dei corsi.</p>
   </div>
-  {% if current_user.role.value == 'admin' %}<a class="button primary" href="/excel-courses/new">Nuovo corso Excel</a>{% endif %}
+  {% if current_user.role.value == 'admin' %}<a class="button primary" href="/excel-courses/new">Nuovo corso</a>{% endif %}
 </div>
 <form class="filters" method="get" action="/excel-courses">
   <input name="q" placeholder="Titolo o descrizione" value="{{ q }}">
-  <input name="category" placeholder="Categoria/foglio" value="{{ category }}">
   <select name="status_filter">
     <option value="">Tutti gli stati</option>
     <option value="attivo" {% if status_filter == 'attivo' %}selected{% endif %}>attivo</option>
@@ -19,13 +17,12 @@
   <button class="button" type="submit">Filtra</button>
 </form>
 <table>
-  <thead><tr><th>ID</th><th>Titolo</th><th>Categoria</th><th>Durata</th><th>Stato</th><th>Aggiornato</th><th></th></tr></thead>
+  <thead><tr><th>ID</th><th>Titolo</th><th>Durata</th><th>Stato</th><th>Aggiornato</th><th></th></tr></thead>
   <tbody>
     {% for course in courses %}
       <tr>
         <td>{{ course.id }}</td>
-        <td>{{ course.title }}<br><span class="muted">{{ course.short_description }}</span></td>
-        <td>{{ course.category }}</td>
+        <td>{{ course.title }}{% if course.short_description and not course.short_description.startswith('Importato dal foglio') %}<br><span class="muted">{{ course.short_description }}</span>{% endif %}</td>
         <td>{{ course.duration }}</td>
         <td><span class="badge">{{ course.status }}</span></td>
         <td>{{ course.updated_at.strftime('%d/%m/%Y %H:%M') }}</td>
@@ -34,13 +31,13 @@
             <div class="table-actions">
               <a class="button small" href="/excel-courses/{{ course.id }}/edit">Modifica</a>
               <form method="post" action="/excel-courses/{{ course.id }}/archive"><button class="button small" type="submit">Archivia</button></form>
-              <form method="post" action="/excel-courses/{{ course.id }}/delete" data-confirm="Eliminare il corso dal file Excel?"><button class="button danger small" type="submit">Elimina</button></form>
+              <form method="post" action="/excel-courses/{{ course.id }}/delete" data-confirm="Eliminare il corso?"><button class="button danger small" type="submit">Elimina</button></form>
             </div>
           {% endif %}
         </td>
       </tr>
     {% else %}
-      <tr><td colspan="7" class="muted">Nessun corso trovato nel foglio Excel.</td></tr>
+      <tr><td colspan="6" class="muted">Nessun corso trovato.</td></tr>
     {% endfor %}
   </tbody>
 </table>

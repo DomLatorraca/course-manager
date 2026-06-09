@@ -282,7 +282,7 @@ def excel_course_create(
                 status=status_value,
             )
         )
-        return redirect("/excel-courses?success=Corso+inserito+nel+file+Excel")
+        return redirect("/excel-courses?success=Corso+inserito")
     except ExcelCourseError as exc:
         return redirect(f"/excel-courses/new?error={quote_message(str(exc))}")
 
@@ -296,7 +296,7 @@ def excel_course_edit(request: Request, course_id: int, user: User | None = Depe
         return response
     course = excel_course_service.get_excel_course(course_id)
     if not course:
-        return redirect("/excel-courses?error=Corso+Excel+non+trovato")
+        return redirect("/excel-courses?error=Corso+non+trovato")
     return render(
         request,
         "excel_course_form.html",
@@ -331,7 +331,7 @@ def excel_course_update(
                 status=status_value,
             ),
         )
-        return redirect("/excel-courses?success=Corso+Excel+aggiornato")
+        return redirect("/excel-courses?success=Corso+aggiornato")
     except ExcelCourseError as exc:
         return redirect(f"/excel-courses/{course_id}/edit?error={quote_message(str(exc))}")
 
@@ -345,7 +345,7 @@ def excel_course_archive(request: Request, course_id: int, user: User | None = D
         return response
     try:
         excel_course_service.archive_excel_course(course_id)
-        return redirect("/excel-courses?success=Corso+Excel+archiviato")
+        return redirect("/excel-courses?success=Corso+archiviato")
     except ExcelCourseError as exc:
         return redirect(f"/excel-courses?error={quote_message(str(exc))}")
 
@@ -359,7 +359,7 @@ def excel_course_delete(request: Request, course_id: int, user: User | None = De
         return response
     try:
         excel_course_service.delete_excel_course(course_id)
-        return redirect("/excel-courses?success=Corso+Excel+eliminato")
+        return redirect("/excel-courses?success=Corso+eliminato")
     except ExcelCourseError as exc:
         return redirect(f"/excel-courses?error={quote_message(str(exc))}")
 
@@ -446,7 +446,7 @@ def enrollment_update_status(
     request: Request,
     enrollment_id: int,
     status_value: str = Form(..., alias="status"),
-    notes: str = Form(""),
+    notes: str | None = Form(None),
     db: Session = Depends(get_db),
     user: User | None = Depends(current_user_or_none),
 ):
@@ -458,7 +458,7 @@ def enrollment_update_status(
     enrollment = enrollment_service.get_enrollment(db, enrollment_id)
     if not enrollment:
         return redirect("/courses?error=Iscrizione+non+trovata")
-    enrollment_service.update_enrollment(db, enrollment, EnrollmentUpdate(status=status_value, notes=notes))
+    enrollment_service.update_enrollment(db, enrollment, EnrollmentUpdate(status=status_value, notes=enrollment.notes if notes is None else notes))
     return redirect(f"/courses/{enrollment.course_id}?success=Stato+aggiornato")
 
 

@@ -11,7 +11,7 @@ from app.models.enrollment import EnrollmentStatus
 from app.schemas.enrollment import EnrollmentCreate
 from app.schemas.student import StudentCreate
 from app.services.enrollment_service import create_enrollment
-from app.services.student_service import create_student, get_student_by_email
+from app.services.student_service import create_student, get_student_by_email, normalize_student_email_domain
 
 
 def import_students_csv(db: Session, content: bytes) -> dict[str, object]:
@@ -25,9 +25,10 @@ def import_students_csv(db: Session, content: bytes) -> dict[str, object]:
     errors: list[str] = []
     for line, row in enumerate(reader, start=2):
         try:
-            email = (row.get("email") or "").strip().lower()
-            if not email:
+            raw_email = (row.get("email") or "").strip().lower()
+            if not raw_email:
                 raise ValueError("email mancante")
+            email = normalize_student_email_domain(raw_email)
             if get_student_by_email(db, email):
                 skipped += 1
                 continue

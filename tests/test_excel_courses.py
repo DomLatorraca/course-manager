@@ -35,6 +35,8 @@ def test_excel_courses_sheet_is_seeded_from_calendar_titles(tmp_path: Path):
     assert "Foglio3" in saved.sheetnames
     assert "Corsi" in saved.sheetnames
     assert saved["Corsi"]["B2"].value == "CORSO FULL STACK 2025"
+    assert saved["Corsi"]["C2"].value is None
+    assert saved["Corsi"]["D2"].value is None
 
 
 def test_excel_course_crud_uses_workbook_rows(tmp_path: Path):
@@ -99,13 +101,17 @@ def test_import_excel_courses_populates_db_from_calendar_titles(db, tmp_path: Pa
     assert result.enrollments_created == 1
     course = db.scalar(select(Course).where(Course.title == "CORSO FULL STACK 2025"))
     assert course is not None
-    assert course.category == "Foglio3"
+    assert course.category == ""
+    assert course.short_description == ""
     student = db.scalar(select(Student).where(Student.last_name == "Rossi", Student.first_name == "Mario"))
     assert student is not None
+    assert student.email.endswith("@digitaltrainingacademy.it")
+    assert "@course-manager.invalid" not in student.email
     enrollment = db.scalar(select(Enrollment).where(Enrollment.course_id == course.id, Enrollment.student_id == student.id))
     assert enrollment is not None
     assert "GRIMANI" in enrollment.notes
     assert "DOCENTE ESTERNO" in enrollment.notes
+    assert "Excel" not in enrollment.notes
 
 
 def test_import_excel_courses_updates_existing_db_course(db, tmp_path: Path):
@@ -172,3 +178,24 @@ def test_import_excel_courses_is_idempotent_for_participants(db, tmp_path: Path)
     assert len(enrollments) == 1
     assert students[0].last_name == "Di Dio"
     assert students[0].first_name == "Giovanni Paolo"
+    assert students[0].email.endswith("@digitaltrainingacademy.it")
+
+
+def test_import_excel_courses_updates_legacy_generated_student_email(db, tmp_path: Path):
+    path = tmp_path / "formazione.xlsx"
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Foglio3"
+    worksheet["B5"] = "CORSO AI 2025"
+    worksheet["A9"] = "Rossi Mario"
+    workbook.save(path)
+
+    db.add(Student(first_name="Mario", last_name="Rossi", email="excel-rossi-mario-91cbe1cab4@course-manager.invalid"))
+    db.commit()
+
+    result = import_excel_courses_to_db(db, path=path, sheet_name="Corsi")
+
+    students = db.scalars(select(Student)).all()
+    assert result.students_updated == 1
+    assert len(students) == 1
+    assert students[0].email == "excel-rossi-mario-91cbe1cab4@digitaltrainingacademy.it"

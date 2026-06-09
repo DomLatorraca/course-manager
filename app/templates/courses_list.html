@@ -9,7 +9,6 @@
 </div>
 <form class="filters" method="get" action="/courses">
   <input name="q" placeholder="Titolo" value="{{ q }}">
-  <input name="category" placeholder="Categoria" value="{{ category }}">
   <select name="status_filter">
     <option value="">Tutti gli stati</option>
     <option value="attivo" {% if status_filter == 'attivo' %}selected{% endif %}>attivo</option>
@@ -18,18 +17,17 @@
   <button class="button" type="submit">Filtra</button>
 </form>
 <table>
-  <thead><tr><th>Titolo</th><th>Categoria</th><th>Durata</th><th>Stato</th><th>Aggiornato</th></tr></thead>
+  <thead><tr><th>Titolo</th><th>Durata</th><th>Stato</th><th>Aggiornato</th></tr></thead>
   <tbody>
     {% for course in courses %}
       <tr>
         <td><a href="/courses/{{ course.id }}">{{ course.title }}</a></td>
-        <td>{{ course.category }}</td>
         <td>{{ course.duration }}</td>
         <td><span class="badge">{{ course.status.value }}</span></td>
         <td>{{ course.updated_at.strftime('%d/%m/%Y') }}</td>
       </tr>
     {% else %}
-      <tr><td colspan="5" class="muted">Nessun corso trovato.</td></tr>
+      <tr><td colspan="4" class="muted">Nessun corso trovato.</td></tr>
     {% endfor %}
   </tbody>
 </table>

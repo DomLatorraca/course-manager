@@ -4,15 +4,20 @@ import argparse
 import getpass
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import delete, func, select
 
 from app.config import get_settings
 from app.database import SessionLocal, init_db
+from app.models.course import Course
+from app.models.enrollment import Enrollment
+from app.models.material import Material
+from app.models.student import Student
 from app.models.user import User, UserRole
 from app.services.auth_service import change_password, create_user
 from app.services.excel_import_service import import_excel_courses_to_db
 from app.services.material_package_service import import_material_package
 from app.services.storage_material_import_service import import_storage_materials
+from app.services.student_service import STUDENT_EMAIL_DOMAIN, normalize_all_student_email_domains
 from app.services.teaching_material_service import generate_teaching_materials
 
 
@@ -140,6 +145,49 @@ def cmd_import_storage_materials(args: argparse.Namespace) -> None:
             print(f"- {error}")
 
 
+def cmd_normalize_student_emails(args: argparse.Namespace) -> None:
+    init_db()
+    with SessionLocal() as db:
+        result = normalize_all_student_email_domains(db, dry_run=args.dry_run)
+
+    mode = "simulazione" if args.dry_run else "correzione"
+    print(
+        f"Risultato {mode} email iscritti: "
+        f"aggiornate={result.updated}, già_corrette={result.unchanged}, dominio=@{STUDENT_EMAIL_DOMAIN}."
+    )
+
+
+def cmd_clear_training_data(args: argparse.Namespace) -> None:
+    init_db()
+    if not args.yes and not args.dry_run:
+        raise SystemExit("Operazione annullata: aggiungi --yes per confermare la pulizia dei dati didattici.")
+
+    with SessionLocal() as db:
+        counts = {
+            "materiali": db.scalar(select(func.count()).select_from(Material)) or 0,
+            "iscrizioni": db.scalar(select(func.count()).select_from(Enrollment)) or 0,
+            "iscritti": db.scalar(select(func.count()).select_from(Student)) or 0,
+            "corsi": db.scalar(select(func.count()).select_from(Course)) or 0,
+        }
+        if args.dry_run:
+            db.rollback()
+        else:
+            db.execute(delete(Material))
+            db.execute(delete(Enrollment))
+            db.execute(delete(Student))
+            db.execute(delete(Course))
+            db.commit()
+
+    mode = "simulazione" if args.dry_run else "pulizia"
+    print(
+        f"Risultato {mode} dati didattici: "
+        f"materiali={counts['materiali']}, "
+        f"iscrizioni={counts['iscrizioni']}, "
+        f"iscritti={counts['iscritti']}, "
+        f"corsi={counts['corsi']}."
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Course Manager CLI")
     subparsers = parser.add_subparsers(required=True)
@@ -178,6 +226,15 @@ def main() -> None:
     import_storage_parser.add_argument("--no-overwrite", action="store_true", help="Non aggiornare materiali già registrati")
     import_storage_parser.add_argument("--dry-run", action="store_true", help="Mostra cosa verrebbe importato senza scrivere database")
     import_storage_parser.set_defaults(func=cmd_import_storage_materials)
+
+    normalize_emails_parser = subparsers.add_parser("normalize-student-emails", help="Corregge le email degli iscritti con il dominio digitaltrainingacademy.it")
+    normalize_emails_parser.add_argument("--dry-run", action="store_true", help="Mostra quante email verrebbero corrette senza scrivere database")
+    normalize_emails_parser.set_defaults(func=cmd_normalize_student_emails)
+
+    clear_training_parser = subparsers.add_parser("clear-training-data", help="Svuota corsi, iscritti, iscrizioni e materiali dal database senza toccare gli utenti")
+    clear_training_parser.add_argument("--yes", action="store_true", help="Conferma la pulizia dei dati didattici")
+    clear_training_parser.add_argument("--dry-run", action="store_true", help="Mostra quanti dati verrebbero cancellati senza scrivere database")
+    clear_training_parser.set_defaults(func=cmd_clear_training_data)
 
     args = parser.parse_args()
     args.func(args)
