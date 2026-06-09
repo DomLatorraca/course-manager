@@ -36,7 +36,7 @@
             <td>{{ material.title }}{% if material.description and 'Importato dal foglio' not in material.description and 'Importato dal pacchetto materiali' not in material.description and 'Importato da storage esistente' not in material.description %}<br><span class="muted">{{ material.description }}</span>{% endif %}</td>
             <td class="file-cell">
               <a href="/materials/{{ material.id }}/view" target="_blank">Visualizza</a>
-              <a class="filename-link" href="/materials/{{ material.id }}/download">{{ material.original_filename }}</a>
+              <a class="filename-link" href="/materials/{{ material.id }}/download" title="{{ material.original_filename }}">Scarica PDF</a>
             </td>
             <td>{{ (material.size_bytes / 1024)|round(1) }} KB</td>
             <td>

@@ -65,7 +65,8 @@ p { color: var(--muted); margin: 6px 0 0; }
 .split > div, .grid-two > div { min-width: 0; }
 .course-detail-grid {
   align-items: start;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
 }
 .course-panel {
   min-width: 0;
@@ -99,20 +100,22 @@ tr:last-child td { border-bottom: 0; }
   table-layout: fixed;
 }
 .materials-table th:nth-child(1), .materials-table td:nth-child(1) { width: 42%; }
-.materials-table th:nth-child(2), .materials-table td:nth-child(2) { width: 34%; }
-.materials-table th:nth-child(3), .materials-table td:nth-child(3) { width: 12%; }
-.materials-table th:nth-child(4), .materials-table td:nth-child(4) { width: 12%; }
+.materials-table th:nth-child(2), .materials-table td:nth-child(2) { width: 24%; }
+.materials-table th:nth-child(3), .materials-table td:nth-child(3) { width: 14%; }
+.materials-table th:nth-child(4), .materials-table td:nth-child(4) { width: 20%; }
 .enrollments-table th:nth-child(1), .enrollments-table td:nth-child(1) { width: 38%; }
 .enrollments-table th:nth-child(2), .enrollments-table td:nth-child(2) { width: 28%; }
 .enrollments-table th:nth-child(3), .enrollments-table td:nth-child(3) { width: 18%; }
 .enrollments-table th:nth-child(4), .enrollments-table td:nth-child(4) { width: 16%; }
-.file-cell a { display: inline-block; }
+.file-cell {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.file-cell a { display: inline-flex; }
 .filename-link {
-  display: block;
-  margin-top: 2px;
   max-width: 100%;
-  overflow-wrap: anywhere;
-  word-break: break-word;
 }
 .enrollments-table .status-form select {
   min-width: 0;
